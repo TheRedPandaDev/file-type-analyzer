@@ -1,70 +1,90 @@
 package analyzer;
 
 import analyzer.strategies.KMPStrategy;
-import analyzer.strategies.NaiveStrategy;
-import analyzer.strategies.PatternChecker;
+import analyzer.strategies.Strategy;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Main {
-    private static final PatternChecker patternChecker = new PatternChecker();
 
     public static void main(String[] args) {
-        if (args.length != 4 || Arrays.stream(args).anyMatch(Objects::isNull)) {
+        ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+//        Temporarily not needed
+//        if (args.length != 4) {
+//            System.out.println("Please provide checking strategy, relative file path, the pattern and type");
+//            System.exit(0);
+//        }
+
+        if (args.length != 3) {
             System.out.println("Please provide checking strategy, relative file path, the pattern and type");
             System.exit(0);
         }
 
-        String checkingStrategy = args[0];
-        String inputFilePath = args[1];
-        String patternString = args[2];
-        String resultString = args[3];
+//        String checkingStrategy = args[0];
+        String inputFilesPath = args[0];
+        String patternString = args[1];
+        String resultString = args[2];
 
 
-        switch (checkingStrategy) {
-            case "--naive":
-                patternChecker.setStrategy(new NaiveStrategy());
-                break;
-            case "--KMP":
-                patternChecker.setStrategy(new KMPStrategy());
-                break;
-            default:
-                System.out.println("Invalid checking strategy");
-                System.exit(0);
-        }
+//        switch (checkingStrategy) {
+//            case "--naive":
+//                patternChecker.setStrategy(new NaiveStrategy());
+//                break;
+//            case "--KMP":
+//                patternChecker.setStrategy(new KMPStrategy());
+//                break;
+//            default:
+//                System.out.println("Invalid checking strategy");
+//                System.exit(0);
+//        }
 
-        byte[] allBytes = null;
+        Strategy strategyToUse = new KMPStrategy();
 
-        try {
-            allBytes = Files.readAllBytes(Paths.get(inputFilePath));
+        List<Path> filePaths = null;
+
+        try(Stream<Path> walk = Files.walk(Paths.get(inputFilesPath))) {
+            filePaths = walk
+                    .filter(Files::isRegularFile)
+                    .collect(Collectors.toCollection(ArrayList::new));
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(0);
         }
 
-        String fileContents = null;
+        List<Callable<Boolean>> checkerList = new ArrayList<>();
 
-        if (allBytes.length != 0) {
-            fileContents = new String(allBytes);
-        } else {
-            System.out.println("The file is empty");
-            System.exit(0);
+
+        for (Path fileToCheck : filePaths) {
+            checkerList.add(new FileChecker(strategyToUse, fileToCheck, patternString));
         }
 
-        long startTime = System.nanoTime();
+        List<Future<Boolean>> checkerResults = new ArrayList<>();
 
-        if (patternChecker.check(fileContents, patternString)) {
-            System.out.println(resultString);
-        } else {
-            System.out.println("Unknown file type");
+        for (Callable<Boolean> fileChecker : checkerList) {
+            checkerResults.add(executorService.submit(fileChecker));
         }
 
-        double elapsedTimeSeconds = (System.nanoTime() - startTime) / 1_000_000_000.0;
-
-        System.out.println("It took " + String.format("%.3f", elapsedTimeSeconds) + " seconds");
+        for (int i = 0; i < filePaths.size(); i++) {
+            System.out.print(filePaths.get(i).getFileName() + ": ");
+            try {
+                if (checkerResults.get(i).get()) {
+                    System.out.println(resultString);
+                } else {
+                    System.out.println("Unknown file type");
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+                System.exit(0);
+            }
+        }
     }
 }
