@@ -1,12 +1,12 @@
+
 public class Clue {
-    public String output;
-    public int threadsStarted;
+    public String first;
+    public String second;
     public String feedback;
 
-    public Clue(String output, int threadsStarted, String feedback) {
-        this.output = output;
-        this.threadsStarted = threadsStarted;
+    public Clue(String first, String second, String feedback) {
+        this.first = first;
+        this.second = second;
         this.feedback = feedback;
     }
-
 }
