@@ -1,5 +1,13 @@
 package analyzer.strategies;
 
+/**
+ * An implementation of the Knuth-Morris-Pratt pattern checking algorithm
+ * Complexity:
+ * O(|t|+|p|)
+ * Where:
+ * t - Text length
+ * p - Pattern length
+ */
 public class KMPStrategy implements Strategy {
 
     public static int[] prefixFunction(String str) {

@@ -1,5 +1,13 @@
 package analyzer.strategies;
 
+/**
+ * An implementation of the naive pattern checking algorithm
+ * Complexity:
+ * O(|t|*|p|)
+ * Where:
+ * t - Text length
+ * p - Pattern length
+ */
 public class NaiveStrategy implements Strategy {
 
     @Override
