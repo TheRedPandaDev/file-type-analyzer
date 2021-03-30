@@ -1,13 +1,17 @@
 package analyzer;
 
 import analyzer.strategies.KMPStrategy;
+import analyzer.strategies.RPStrategy;
 import analyzer.strategies.Strategy;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -30,12 +34,9 @@ public class Main {
         List<String> patterns = new ArrayList<>();
         List<String> fileTypes = new ArrayList<>();
 
-        try (Stream<String> stream = Files.lines(Paths.get(patternsFile)))
-        {
+        try (Stream<String> stream = Files.lines(Paths.get(patternsFile))) {
             stream.forEach(lines::add);
-        }
-        catch (IOException e)
-        {
+        } catch (IOException e) {
             e.printStackTrace();
         }
 
@@ -44,16 +45,16 @@ public class Main {
         Collections.reverse(lines);
 
         lines.forEach(s -> {
-                String[] line = s.split(";");
-                patterns.add(line[1].substring(1, line[1].length() - 1));
-                fileTypes.add(line[2].substring(1, line[2].length() - 1));
-            });
+            String[] line = s.split(";");
+            patterns.add(line[1].substring(1, line[1].length() - 1));
+            fileTypes.add(line[2].substring(1, line[2].length() - 1));
+        });
 
         Strategy strategyToUse = new KMPStrategy();
 
         List<Path> filePaths = null;
 
-        try(Stream<Path> walk = Files.walk(Paths.get(inputFilesPath))) {
+        try (Stream<Path> walk = Files.walk(Paths.get(inputFilesPath))) {
             filePaths = walk
                     .filter(Files::isRegularFile)
                     .collect(Collectors.toCollection(ArrayList::new));
