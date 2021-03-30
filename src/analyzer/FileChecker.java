@@ -3,43 +3,42 @@ package analyzer;
 import analyzer.strategies.PatternChecker;
 import analyzer.strategies.Strategy;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.util.List;
 import java.util.concurrent.Callable;
 
-public class FileChecker implements Callable<Boolean> {
+public class FileChecker implements Callable<Integer> {
     private final PatternChecker patternChecker = new PatternChecker();
     private final Path inputFilePath;
-    private final String patternString;
+    private final List<String> patternsList;
 
-    public FileChecker(Strategy strategy, Path inputFilePath, String patternString) {
+    public FileChecker(Strategy strategy, Path inputFilePath, List<String> patternsList) {
         this.patternChecker.setStrategy(strategy);
         this.inputFilePath = inputFilePath;
-        this.patternString = patternString;
+        this.patternsList = patternsList;
     }
 
     @Override
-    public Boolean call() throws Exception {
-        byte[] allBytes = null;
+    public Integer call() throws Exception {
+        byte[] allBytes = Files.readAllBytes(inputFilePath);
 
-        try {
-            allBytes = Files.readAllBytes(inputFilePath);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.exit(0);
-        }
-
-        String fileContents = "";
+        String fileContents;
 
         if (allBytes.length != 0) {
             fileContents = new String(allBytes);
         } else {
-            System.out.println("The file is empty");
-            System.exit(0);
+            return -2;
         }
 
-        return patternChecker.check(fileContents, patternString);
+        boolean patternMatch = false;
+        int currentPattern = 0;
+        while (currentPattern < patternsList.size()) {
+            patternMatch = patternChecker.check(fileContents, patternsList.get(currentPattern));
+            if (patternMatch) break;
+            currentPattern++;
+        }
+
+        return patternMatch ? currentPattern : -1;
     }
 }
